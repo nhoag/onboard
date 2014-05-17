@@ -1,6 +1,6 @@
 # Onboard
 
-TODO: Write a gem description
+Checks, downloads, verifies, adds, and commits Drupal contrib modules.
 
 ## Installation
 
@@ -18,7 +18,36 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+__COMMANDS:__
+```
+Commands:
+  onboard help [COMMAND]                # Describe available commands or one s...
+  onboard modules DOCROOT -c, --core=N  # add default modules to DOCROOT
+```
+
+__MODULES:__
+```
+Usage:
+  onboard modules DOCROOT -c, --core=N
+
+Options:
+  -a, [--addendum=one two three]   # Add projects to the default list
+  -c, --core=N                     # Specify Drupal core version
+  -d, [--destination=DESTINATION]  # Specify contrib destination relative to docroot
+  -f, [--force=FORCE]              # Force add modules
+  -n, [--no=NO]                    # Assume 'no' for all prompts
+  -p, [--projects=one two three]   # Pass a custom list of projects
+  -s, [--subdir=SUBDIR]            # Specify contrib subdir relative to 'modules'
+  -y, [--yes=YES]                  # Assume 'yes' for all prompts
+
+Description:
+  onboard modules performs multiple steps when installing default contrib
+  modules (acquia_connector, fast_404, memcache):
+
+  1. Checks for each module in the docroot
+  2. Downloads the latest version of each module
+  3. Adds and commits each module
+```
 
 ## Contributing
 
