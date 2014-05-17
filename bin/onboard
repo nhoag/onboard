@@ -1,0 +1,5 @@
+#!/usr/bin/env ruby
+
+require 'onboard'
+
+Onboard::CLI.start(ARGV)
