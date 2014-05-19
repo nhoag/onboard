@@ -6,25 +6,28 @@ module Onboard
     # TODO: switch from DOCROOT to CODEBASE - will enable more comprehensive searching
     desc "modules DOCROOT", "add default modules to DOCROOT"
     long_desc <<-LONGDESC
-      `onboard modules` performs multiple steps when installing default contrib
-      modules (acquia_connector, fast_404, memcache):
+      `onboard modules` performs multiple tasks when installing contrib
+      modules:
 
-      1. Checks for each module in the docroot
-      2. Downloads the latest version of each module\n
-      3. Adds and commits each module\n
+      * Checks for each module in the docroot
 
+      * Downloads the latest version of each module
+
+      * Adds and commits each module
+
+      Default contrib modules: acquia_connector, fast_404, memcache
     LONGDESC
     option :addendum, :aliases => "-a", :type => :array, :desc => "Add projects to the default list"
     # TODO: Analyze codebase for core version?
     # ala - find ./CODEBASE -type f -name '*.info' | xargs -I {} grep -rn '^version = \"' {}
     option :core, :required => true, :aliases => "-c", :type => :numeric, :desc => "Specify Drupal core version"
     option :destination, :aliases => "-d", :desc => "Specify contrib destination relative to docroot"
-    option :force, :aliases => "-f", :desc => "Force add modules"
+    option :force, :aliases => "-f", :desc => "Force add modules (even if already present)"
     option :no, :aliases => "-n", :desc => "Assume 'no' for all prompts"
     option :projects, :aliases => "-p", :type => :array, :desc => "Pass a custom list of projects"
     # option :remove, :aliases => "-r", :desc => "Remove all copies of existing modules"
     option :subdir, :aliases => "-s", :desc => "Specify contrib subdir relative to 'modules'"
-    # option :vc, :type => :boolean, :default => true, :desc => "Enable/Disable version control handling"
+    option :vc, :type => :boolean, :default => true, :desc => "Enable/Disable version control handling"
     option :yes, :aliases => "-y", :desc => "Assume 'yes' for all prompts"
     def modules(docroot)
       require 'open-uri/cached'
@@ -91,6 +94,7 @@ module Onboard
           project_uri = "http://updates.drupal.org/release-history/#{x}/#{core}"
           # TODO: replace 'open().read' with custom caching solution
           # TODO: new class - DownloadProject
+          # TODO: best version when no stable found
           doc = Nokogiri::XML(open(project_uri).read)
           patch = {}
           major = doc.at_xpath('//recommended_major').content
@@ -115,14 +119,25 @@ module Onboard
             exit
           end
         }
-        require_relative 'git'
-        diff.each { |x|
-          say("Pushing #{x} to the remote repo... ")
-          Repo.new(docroot, "docroot/#{destination}/#{x}").update
-          # TODO: right-justify '[done]'
-          # TODO: error handling and conditional messaging for failures
-          say("[done]", :green)
-        }
+        if options[:vc] == true
+          require_relative 'git'
+          require_relative 'screen'
+          diff.each { |x|
+            width = Screen.new().width
+            msg = "Pushing #{x} to the remote repo... "
+            spaces = " " * (width - msg.length - 6)
+            say(msg)
+            say(spaces)
+            Repo.new(docroot, "docroot/#{destination}/#{x}").update
+            # TODO: right-justify '[done]'
+            # TODO: error handling and conditional messaging for failures
+            say("[done]", :green)
+          }
+        else
+          diff.each { |x|
+            say("#{x} added to codebase but changes are not yet tracked in version control.", :yellow)
+          }
+        end
       else
         say("All projects already in codebase.", :yellow)
       end
