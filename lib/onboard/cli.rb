@@ -1,9 +1,11 @@
 # encoding: utf-8
 require 'thor'
+require 'open-uri/cached'
+require_relative 'codebase'
 
 module Onboard
   class CLI < Thor
-    # TODO: switch from DOCROOT to CODEBASE - will enable more comprehensive searching
+    # TODO: switch from DOCROOT to CODEBASE to enable more comprehensive searching
     desc "modules DOCROOT", "add default modules to DOCROOT"
     long_desc <<-LONGDESC
       `onboard modules` performs multiple tasks when installing contrib
@@ -30,7 +32,6 @@ module Onboard
     option :vc, :type => :boolean, :default => true, :desc => "Enable/Disable version control handling"
     option :yes, :aliases => "-y", :desc => "Assume 'yes' for all prompts"
     def modules(docroot)
-      require 'open-uri/cached'
       core = "#{options[:core]}.x"
       modules = []
       if options[:projects].nil? == false
@@ -43,43 +44,40 @@ module Onboard
       end
       subdir = options[:subdir].nil? == true ? "" : "/#{options[:subdir]}"
       destination = options[:destination].nil? ? "sites/all/modules#{subdir}" : "#{options[:destination]}#{subdir}"
-      # TODO: new class - FindProject
       require 'find'
       found = []
-      Find.find(docroot) { |e|
+      Find.find(docroot) do |e|
         if File.directory?(e)
           if modules.include?(File.basename(e))
             found.push e
           end
         end
-      }
-      names = []
-      if found.nil? == false
+      end
+      if found.any?
         say("Projects exist at the following locations:", :yellow)
-        found.each { |project|
+        found.each do |project|
           puts "  " + project
-          names.push File.basename(project)
-        }
+        end
         puts ""
       end
-      diff = modules - names
-      if options[:force] == 'force'
-        diff = modules
+      if options[:force] != 'force'
+        found.each do |x|
+          modules.delete(File.basename(x))
+        end
       end
-      if diff.empty? == false
-        require 'nokogiri'
+      if modules.empty? == false
         say("Ready to add the following projects:", :green)
-        diff.each { |x|
+        modules.each do |x|
           puts "  " + "#{docroot}/#{destination}/#{x}"
-        }
+        end
         puts ""
         if options[:no].nil? && options[:yes].nil?
           answer = ""
           while answer !~ /^[Y|N]$/i do
             answer = ask("Proceed? [Y|N]: ")
+            puts ""
           end
           if answer =~ /^[N]$/i
-            puts ""
             say("Script was exited.")
             exit
           end
@@ -87,56 +85,41 @@ module Onboard
           say("Script was exited.")
           exit
         end
-        # TODO: new class - RemoveProject
-        require 'fileutils'
-        diff.each { |x|
-          FileUtils.rm_r "#{docroot}/#{destination}/#{x}" if File.directory?("#{docroot}/#{destination}/#{x}")
-          project_uri = "http://updates.drupal.org/release-history/#{x}/#{core}"
+        modules.each do |x|
+          Codebase.new("#{docroot}/#{destination}/#{x}").rm
           # TODO: replace 'open().read' with custom caching solution
-          # TODO: new class - DownloadProject
-          # TODO: best version when no stable found
-          doc = Nokogiri::XML(open(project_uri).read)
-          patch = {}
-          major = doc.at_xpath('//recommended_major').content
-          doc.xpath('//releases//release').each do |item|
-            if !item.at_xpath('version_extra') && item.at_xpath('version_major').content == "#{major}"
-              patch[item.at_xpath('version_patch').content.to_i] = item.at_xpath('mdhash').content
-            end
-          end
-          minor = patch.keys.max
-          archive = "http://ftp.drupal.org/files/projects/#{x}-#{core}-#{major}.#{minor}.tar.gz"
+          require_relative 'contrib'
+          dl = Contrib.new(x, core).dl
+          feed_md5, archive = dl
           # TODO: replace 'open().read' with custom caching solution
           open(archive).read
           uri = URI.parse(archive)
           targz = "/tmp/open-uri-503" + [ @path, uri.host, Digest::SHA1.hexdigest(archive) ].join('/')
           md5 = Digest::MD5.file(targz).hexdigest
-          # TODO: retry with failed download verification
-          if md5 == patch[minor]
-            require_relative 'extract'
-            Extract.new(targz, "#{docroot}/#{destination}").z
+          # TODO: retry download after failed download verification
+          if md5 == feed_md5
+            Codebase.new(targz, "#{docroot}/#{destination}").extract
           else
             say("Verification failed for #{x} archive!", :red)
             exit
           end
-        }
+        end
         if options[:vc] == true
-          require_relative 'git'
+          require_relative 'repo'
           require_relative 'screen'
-          diff.each { |x|
+          modules.each do |x|
             width = Screen.new().width
-            msg = "Pushing #{x} to the remote repo... "
-            spaces = " " * (width - msg.length - 6)
-            say(msg)
-            say(spaces)
+            msg = "Pushing #{x} to the remote repo..."
+            spaces = " " * (width - msg.length - 8)
+            say(msg + spaces)
             Repo.new(docroot, "docroot/#{destination}/#{x}").update
-            # TODO: right-justify '[done]'
             # TODO: error handling and conditional messaging for failures
-            say("[done]", :green)
-          }
+            say("  [done]", :green)
+          end
         else
-          diff.each { |x|
+          modules.each do |x|
             say("#{x} added to codebase but changes are not yet tracked in version control.", :yellow)
-          }
+          end
         end
       else
         say("All projects already in codebase.", :yellow)

@@ -1,4 +1,6 @@
 # encoding: utf-8
+require 'fileutils'
+require 'find'
 require 'rubygems/package'
 require 'zlib'
 
@@ -6,16 +8,20 @@ module Onboard
 
   TAR_LONGLINK = '././@LongLink'
 
-  class Extract
-    attr_reader :archive, :dest
+  class Codebase
+    attr_reader :path, :dest
 
-    def initialize(archive, dest)
-      @archive = archive
+    def initialize(path, dest = nil)
+      @path = path
       @dest = dest
     end
 
-    def z
-      Gem::Package::TarReader.new( Zlib::GzipReader.open archive ) do |tar|
+    def rm
+      FileUtils.rm_r path if File.directory?(path)
+    end
+
+    def extract
+      Gem::Package::TarReader.new( Zlib::GzipReader.open path ) do |tar|
         dst = nil
         tar.each do |entry|
           if entry.full_name == TAR_LONGLINK
