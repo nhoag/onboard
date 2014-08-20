@@ -1,6 +1,7 @@
 # encoding: utf-8
 require 'fileutils'
 require 'find'
+require 'nokogiri'
 require 'rubygems/package'
 require 'zlib'
 
@@ -8,12 +9,29 @@ module Onboard
 
   TAR_LONGLINK = '././@LongLink'
 
-  class Codebase
-    attr_reader :path, :dest
+  class Project
+    attr_reader :feed, :path, :dest
 
-    def initialize(path, dest = nil)
-      @path = path
-      @dest = dest
+    def initialize(args = {})
+      @feed = "http://updates.drupal.org/release-history/#{args['project']}/#{args['core']}"
+      @path = args['path']
+      @dest = args['dest']
+    end
+
+    def dl
+      doc = Nokogiri::XML(open(@feed).read)
+      releases = {}
+      doc.xpath('//releases//release').each do |item|
+        if !item.at_xpath('version_extra')
+          releases[item.at_xpath('mdhash').content] = item.at_xpath('download_link').content
+        end
+      end
+      if releases.nil?
+        doc.xpath('//releases//release').each do |item|
+          releases[item.at_xpath('mdhash').content] = item.at_xpath('download_link').content
+        end
+      end
+      return releases.first
     end
 
     def rm
@@ -47,3 +65,4 @@ module Onboard
     end
   end
 end
+

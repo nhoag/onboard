@@ -6,20 +6,31 @@ require 'pathname'
 
 module Onboard
   class Repo
-    attr_reader :docroot, :path
+    attr_reader :g, :path, :branch
 
-    def initialize(docroot, path)
-      @docroot = docroot
-      @path = path
+    def initialize(repo)
+      @codebase = repo['codebase']
+      @g = self.prepare(repo)
+      @path = repo['path']
+      @branch = repo['branch']
+    end
+
+    def info
+      repo = {}
+      repo['current_branch'] = g.current_branch
+      repo['remotes'] = g.remotes
+      return repo
+    end
+
+    def prepare(args)
+      repo = Git.open((Pathname.new(args['codebase'])).to_s)
+      selection = args['branch'].empty? ? repo.current_branch : args['branch']
+      repo.branch(selection).checkout
+      return repo
     end
 
     def update
-      prj_root = Pathname.new(docroot)
-      workdir = prj_root.parent.to_s
       project = File.basename(path)
-
-      g = Git.open(workdir)
-      g.branch('master').checkout
 
       changes = []
       g.status.changed.keys.each { |x| changes.push x }
@@ -28,11 +39,14 @@ module Onboard
 
       if changes.nil? == false
         g.add(path, :all=>true)
-        g.commit("Adds #{project}")
-        g.push
+        g.commit("Add #{project}")
       else
         puts "No changes to commit for #{project}"
       end
+    end
+
+    def push
+      g.push
     end
   end
 end
