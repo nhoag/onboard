@@ -1,13 +1,15 @@
 #!/usr/bin/env ruby
 
-require 'curses'
+require 'io/console'
 
 module Onboard
   class Screen
-    Curses.init_screen()
 
-    def width
-      return Curses.cols
+    def size
+      IO.console.winsize
+      rescue LoadError
+      [Integer(`tput li`), Integer(`tput co`)]
     end
   end
 end
+

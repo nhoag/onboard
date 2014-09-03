@@ -14,9 +14,9 @@ module Onboard
       end
 
       def format
-        width = Screen.new().width
+        height, width = Screen.new().size
         spaces = " " * (width - msg.length - 8)
-        return msg + spaces
+        say(msg + spaces)
       end
     end
   end

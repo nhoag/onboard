@@ -10,7 +10,6 @@ require_relative 'repo'
 
 module Onboard
   class CLI < Thor
-    # TODO: switch from DOCROOT to CODEBASE to enable more comprehensive searching
     desc "projects CODEBASE", "add projects to CODEBASE"
     long_desc <<-LONGDESC
       `onboard projects` performs multiple tasks when installing contrib
@@ -23,8 +22,6 @@ module Onboard
       * Adds and commits each project
 
     LONGDESC
-    # TODO: Analyze codebase for project version
-    # ala - find ./CODEBASE -type f -name '*.info' | xargs -I {} grep -rn '^version = \"' {}
     option :branch, :aliases => "-b", :desc => "Specify repository branch to update"
     option :core, :required => true, :aliases => "-c", :type => :numeric, :desc => "Specify Drupal core version"
     option :path, :required => true, :aliases => "-p", :desc => "Specify project path relative to CODEBASE"
@@ -38,27 +35,32 @@ module Onboard
     option :yes, :aliases => "-y", :desc => "Assume 'yes' for all prompts"
     def projects(codebase)
       core = "#{options[:core]}.x"
-      projects = []
+      projects = {}
       if options[:modules].nil? == false
-        options[:modules].each { |x| projects.push x }
+        options[:modules].each { |x| projects[x] = '' }
       elsif options[:themes].nil? == false
-        options[:themes].each { |x| projects.push x }
+        options[:themes].each { |x| projects[x] = '' }
       end
       path = "#{options[:path]}"
       found = Finder.new(projects, codebase).locate
-      if found.any?
+      if found.empty? == false
         say("Projects exist at the following locations:", :yellow)
-        found.each { |x| puts "  " + x }
+        found.each do |x, y|
+          puts "  " + x
+          projects[File.basename(x)] = y
+        end
         puts ""
       end
       if options[:force] != 'force'
-        found.each do |x|
-          projects.delete(File.basename(x))
+        if found.empty? == false
+          found.each do |x, y|
+            projects.delete(File.basename(x))
+          end
         end
       end
       if projects.empty? == false
         say("Ready to add the following projects:", :green)
-        projects.each do |x|
+        projects.each do |x, y|
           puts "  " + "#{codebase}/#{path}/#{x}"
         end
         puts ""
@@ -68,53 +70,22 @@ module Onboard
           say("Script was exited.")
           exit
         end
-        projects.each do |x|
-          prm = {}
-          prm['path'] = "#{codebase}/#{path}/#{x}"
-          Project.new(prm).rm
-          # TODO: replace 'open().read' with custom caching solution
-          pdl = {}
-          pdl['project'] = x
-          pdl['core'] = core
-          dl = Project.new(pdl).dl
-          feed_md5, archive = dl
-          # TODO: replace 'open().read' with custom caching solution
-          open(archive).read
-          uri = URI.parse(archive)
-          targz = "/tmp/open-uri-503" + [ @path, uri.host, Digest::SHA1.hexdigest(archive) ].join('/')
-          md5 = Digest::MD5.file(targz).hexdigest
-          # TODO: retry download after failed download verification
-          if md5 == feed_md5
-            pex = {}
-            pex['dest'] = "#{codebase}/#{path}"
-            pex['path'] = targz 
-            Project.new(pex).extract
-          else
-            say("Verification failed for #{x} archive!", :red)
-            exit
-          end
-        end
+        prj = {}
+        prj['codebase'] = codebase
+        prj['path'] = "#{codebase}/#{path}"
+        prj['projects'] = projects
+        prj['core'] = core
+        Project.new(prj).dl
         if options[:vc] == true
-          require_relative 'msg'
           branch = options[:branch].nil? ? '' : options[:branch]
           repo = {}
           repo['branch'] = branch
           repo['codebase'] = codebase
-          repo_info = Repo.new(repo).info
-          projects.each do |x|
-            acmsg = "Committing #{x} on #{repo_info['current_branch']} branch..."
-            say(Msg.new(acmsg).format)
-            repo['path'] = "#{path}/#{x}" 
-            Repo.new(repo).update
-            say("  [done]", :green)
-            # TODO: error handling and conditional messaging for failures
-          end
-          pmsg = "Pushing all changes to #{repo_info['remotes']}..."
-          say(Msg.new(pmsg).format)
-          Repo.new(repo).push
-          say("  [done]", :green)
+          repo['projects'] = projects
+          repo['path'] = path
+          Repo.new(repo).update
         else
-          projects.each do |x|
+          projects.each do |x, y|
             say("#{x} added to codebase but changes are not yet tracked in version control.", :yellow)
           end
         end

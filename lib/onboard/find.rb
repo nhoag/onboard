@@ -12,20 +12,38 @@ module Onboard
     end
 
     def locate
-      found = []
+      found = {}
       Find.find(haystack) do |e|
         if File.directory?(e)
-          if needle.include?(File.basename(e))
-            Find.find(e) do |f|
-              if File.extname(f) == '.info'
-                found.push e
+          if needle.has_key?(File.basename(e))
+            Dir.entries(e).select do |f|
+              file = "#{e}/#{f}"
+              if File.file?(file)
+                if self.info_ext?(file)
+                  if self.version(file).empty? == false
+                    found[e] = self.version(file)
+                  end
+                end
               end
             end
           end
         end
       end
+      return found
+    end
 
-      return found.uniq
+    def info_ext?(file)
+      File.extname(file) == '.info'
+    end
+
+    def version(file)
+      File.open(file) do |g|
+        g.each_line do |line|
+          if line =~ /version/
+            return line.scan(/.*?"(.*?)".*$/)[0].nil? ? '' : line.scan(/.*?"(.*?)".*$/)[0]
+          end
+        end
+      end
     end
   end
 end

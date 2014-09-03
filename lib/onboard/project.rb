@@ -1,65 +1,125 @@
 # encoding: utf-8
+
 require 'fileutils'
 require 'find'
 require 'nokogiri'
 require 'rubygems/package'
+require 'thor'
 require 'zlib'
+
+require_relative 'confirm'
+require_relative 'download'
+require_relative 'repo'
 
 module Onboard
 
   TAR_LONGLINK = '././@LongLink'
+  DRUPAL_PRJ_FEED = "http://updates.drupal.org/release-history/"
+  DRUPAL_DL_LINK = "http://ftp.drupal.org/files/projects/"
 
-  class Project
-    attr_reader :feed, :path, :dest
+  class Project < Thor
+    attr_reader :core, :path, :projects, :codebase
 
-    def initialize(args = {})
-      @feed = "http://updates.drupal.org/release-history/#{args['project']}/#{args['core']}"
-      @path = args['path']
-      @dest = args['dest']
-    end
+    no_tasks do
+      def initialize(args = {})
+        @core = args['core']
+        @path = args['path']
+        @projects = args['projects']
+        @codebase = args['codebase']
+      end
 
-    def dl
-      doc = Nokogiri::XML(open(@feed).read)
-      releases = {}
-      doc.xpath('//releases//release').each do |item|
-        if !item.at_xpath('version_extra')
-          releases[item.at_xpath('mdhash').content] = item.at_xpath('download_link').content
+      def feed(project)
+        "#{DRUPAL_PRJ_FEED}#{project}/#{core}"
+      end
+
+      def hacked?(project, existing)
+        self.clean("#{path}/#{project}")
+        link = DRUPAL_DL_LINK + project + "-" + existing + ".tar.gz"
+        Download.new.fetch(link)
+        self.extract(Download.new.path(link)) if self.verify(project, link, existing)
+        st = {}
+        st['codebase'] = codebase
+        changes = Repo.new(st).st
+        if changes.empty? == false
+          Confirm.new("Proceed?").yes?
         end
       end
-      if releases.nil?
-        doc.xpath('//releases//release').each do |item|
-          releases[item.at_xpath('mdhash').content] = item.at_xpath('download_link').content
+
+      def dl
+        projects.each do |x, y|
+          self.hacked?(x, y[0]) if y.empty? == false
+          self.clean("#{path}/#{x}")
+          md5, link = self.release(x)
+          Download.new.fetch(link)
+          self.extract(Download.new.path(link)) if self.verify(x, link)
+          # TODO: retry download after failed download verification
         end
       end
-      return releases.first
-    end
 
-    def rm
-      FileUtils.rm_r path if File.directory?(path)
-    end
+      def verify(x, file, version='')
+        md5, link = self.release(x, version)
+        if md5 == Digest::MD5.file(Download.new.path(file)).hexdigest
+          return true
+        else
+          say("Verification failed for #{project} download!", :red)
+          exit
+        end
+      end
 
-    def extract
-      Gem::Package::TarReader.new( Zlib::GzipReader.open path ) do |tar|
-        dst = nil
-        tar.each do |entry|
-          if entry.full_name == TAR_LONGLINK
-            dst = File.join dest, entry.read.strip
-            next
-          end
-          dst ||= File.join dest, entry.full_name
-          if entry.directory?
-            FileUtils.rm_rf dst unless File.directory? dst
-            FileUtils.mkdir_p dst, :mode => entry.header.mode, :verbose => false
-          elsif entry.file?
-            FileUtils.rm_rf dst unless File.file? dst
-            File.open dst, "wb" do |f|
-              f.print entry.read
+      def release(project, version='')
+        feed = self.feed(project)
+        Download.new.fetch(feed)
+        xml = File.open(Download.new.path(feed))
+        doc = Nokogiri::XML(xml)
+        releases = {}
+        if version.empty? == false
+          doc.xpath('//releases//release').each do |item|
+            if item.at_xpath('version').content == version
+              releases[item.at_xpath('mdhash').content] = item.at_xpath('download_link').content
             end
-            FileUtils.chmod entry.header.mode, dst, :verbose => false
-          elsif entry.header.typeflag == '2' #Symlink!
-            File.symlink entry.header.linkname, dst
           end
+        else
+          doc.xpath('//releases//release').each do |item|
+            if !item.at_xpath('version_extra')
+              releases[item.at_xpath('mdhash').content] = item.at_xpath('download_link').content
+            end
+          end
+        end
+        if releases.nil?
+          doc.xpath('//releases//release').each do |item|
+            releases[item.at_xpath('mdhash').content] = item.at_xpath('download_link').content
+          end
+        end
+        return releases.first
+      end
+
+      def clean(arg)
+        FileUtils.rm_r arg if File.directory?(arg)
+      end
+
+      def extract(archive)
+        Gem::Package::TarReader.new( Zlib::GzipReader.open archive ) do |tar|
           dst = nil
+          tar.each do |entry|
+            if entry.full_name == TAR_LONGLINK
+              dst = File.join path, entry.read.strip
+              next
+            end
+            dst ||= File.join path, entry.full_name
+            if entry.directory?
+              FileUtils.rm_rf dst unless File.directory? dst
+              FileUtils.mkdir_p dst, :mode => entry.header.mode, :verbose => false
+            elsif entry.file?
+              FileUtils.rm_rf dst unless File.file? dst
+              File.open dst, "wb" do |f|
+                f.print entry.read
+              end
+              FileUtils.chmod entry.header.mode, dst, :verbose => false
+            elsif entry.header.typeflag == '2' #Symlink!
+              File.symlink entry.header.linkname, dst
+            end
+            dst = nil
+          end
         end
       end
     end
