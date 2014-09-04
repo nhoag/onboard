@@ -9,6 +9,7 @@ require 'zlib'
 
 require_relative 'confirm'
 require_relative 'download'
+require_relative 'msg'
 require_relative 'repo'
 
 module Onboard
@@ -18,14 +19,17 @@ module Onboard
   DRUPAL_DL_LINK = "http://ftp.drupal.org/files/projects/"
 
   class Project < Thor
-    attr_reader :core, :path, :projects, :codebase
+    attr_reader :branch, :codebase, :core, :path, :projects, :vc
 
     no_tasks do
       def initialize(args = {})
-        @core = args['core']
-        @path = args['path']
-        @projects = args['projects']
+        @branch = args['branch']
         @codebase = args['codebase']
+        @core = args['core']
+        @path = "#{args['codebase']}/#{args['path']}"
+        @projects = args['projects']
+        @vc = args['vc']
+        @vc_path = args['path']
       end
 
       def feed(project)
@@ -46,14 +50,59 @@ module Onboard
       end
 
       def dl
+        changes = []
         projects.each do |x, y|
-          self.hacked?(x, y[0]) if y.empty? == false
+          self.hacked?(x, y) if y.empty? == false
           self.clean("#{path}/#{x}")
+          # TODO: check existing version against release version - abort if same.
           md5, link = self.release(x)
           Download.new.fetch(link)
-          self.extract(Download.new.path(link)) if self.verify(x, link)
           # TODO: retry download after failed download verification
+          self.extract(Download.new.path(link)) if self.verify(x, link)
+          if vc == true
+            repo = self.build_vc(x)
+            changes += self.vc_up(repo)
+          else
+            say("#{x} added to codebase but changes are not yet under version control.", :yellow)
+          end
         end
+        if changes.empty? == false
+          repo = self.build_vc()
+          self.vc_push(repo)
+        end
+      end
+
+      def build_vc(x = '')
+        repo = {}
+        repo['codebase'] = codebase
+        repo['path'] = @vc_path
+        repo['branch'] = branch
+        repo['project'] = x
+        return repo
+      end
+
+      def vc_up(args)
+        g = Repo.new(args)
+        info = g.info
+        changes = []
+        msg = "Committing #{args['project']} on #{info['current_branch']} branch..."
+        Msg.new(msg).format
+        changes = g.commit("#{args['path']}/#{args['project']}")
+        if changes.empty? == false
+          say("  [done]", :green)
+        else
+          puts "\nNo changes to commit for #{args['project']}"
+        end
+        return changes
+      end
+
+      def vc_push(args)
+        g = Repo.new(args)
+        info = g.info
+        msg = "Pushing all changes to #{info['remotes'][0]}..."
+        Msg.new(msg).format
+        g.push
+        say("  [done]", :green)
       end
 
       def verify(x, file, version='')

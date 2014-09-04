@@ -4,8 +4,6 @@ require 'git'
 require 'pathname'
 require 'thor'
 
-require_relative 'msg'
-
 module Onboard
   class Repo < Thor
     attr_reader :g, :path, :branch, :codebase, :projects
@@ -61,27 +59,6 @@ module Onboard
 
       def prepare(args)
         Git.open((Pathname.new(args['codebase'])).to_s)
-      end
-
-      def update
-        info = self.info
-        changes = []
-        projects.each do |x, y|
-          msg = "Committing #{x} on #{info['current_branch']} branch..."
-          Msg.new(msg).format
-          changes = self.commit("#{path}/#{x}")
-          if changes.empty? == false
-            say("  [done]", :green)
-          else
-            puts "\nNo changes to commit for #{x}"
-          end
-        end
-        if changes.empty? == false
-          msg = "Pushing all changes to #{info['remotes'][0]}..."
-          Msg.new(msg).format
-          self.push
-          say("  [done]", :green)
-        end
       end
 
       def commit(path)

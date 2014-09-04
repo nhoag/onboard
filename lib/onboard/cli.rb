@@ -47,7 +47,7 @@ module Onboard
         say("Projects exist at the following locations:", :yellow)
         found.each do |x, y|
           puts "  " + x
-          projects[File.basename(x)] = y
+          projects[File.basename(x)] = y[0]
         end
         puts ""
       end
@@ -71,24 +71,14 @@ module Onboard
           exit
         end
         prj = {}
+        branch = options[:branch].nil? ? '' : options[:branch]
+        prj['branch'] = branch
         prj['codebase'] = codebase
-        prj['path'] = "#{codebase}/#{path}"
-        prj['projects'] = projects
         prj['core'] = core
+        prj['path'] = path
+        prj['projects'] = projects
+        prj['vc'] = options[:vc]
         Project.new(prj).dl
-        if options[:vc] == true
-          branch = options[:branch].nil? ? '' : options[:branch]
-          repo = {}
-          repo['branch'] = branch
-          repo['codebase'] = codebase
-          repo['projects'] = projects
-          repo['path'] = path
-          Repo.new(repo).update
-        else
-          projects.each do |x, y|
-            say("#{x} added to codebase but changes are not yet tracked in version control.", :yellow)
-          end
-        end
       else
         say("All projects already in codebase.", :yellow)
       end
