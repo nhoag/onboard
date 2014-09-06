@@ -25,7 +25,7 @@ Commands:
   onboard projects CODEBASE -c, --core=N -p, --path=PATH  # add projects to CODEBASE
 ```
 
-__MODULES:__
+__PROJECTS:__
 ```
 Usage:
   onboard projects CODEBASE -c, --core=N -p, --path=PATH
@@ -37,6 +37,7 @@ Options:
   -f, [--force=FORCE]            # Force add modules (even if already present)
   -n, [--no=NO]                  # Assume 'no' for all prompts
   -m, [--modules=one two three]  # Pass a list of modules
+  -d, [--delete=DELETE]          # Delete existing projects
   -t, [--themes=one two three]   # Pass a list of themes
       [--vc], [--no-vc]          # Enable/Disable version control handling
                                  # Default: true
