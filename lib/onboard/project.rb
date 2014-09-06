@@ -38,32 +38,60 @@ module Onboard
 
       def hacked?(project, existing)
         self.clean("#{path}/#{project}")
-        link = DRUPAL_DL_LINK + project + "-" + existing + ".tar.gz"
+        link = self.build_link(project, existing)
         Download.new.fetch(link)
         self.extract(Download.new.path(link)) if self.verify(project, link, existing)
-        st = {}
-        st['codebase'] = codebase
-        changes = Repo.new(st).st
+        repo = self.build_vc(project)
+        changes = Repo.new(repo).st(true)
         if changes.empty? == false
-          Confirm.new("Proceed?").yes?
+          return !Confirm.new("Proceed?").yes?
+        else
+          return false
         end
+      end
+
+      def latest?(latest, existing, project)
+        if Gem::Dependency.new('', "~> #{latest}").match?('', "#{existing}")
+          say("#{project} is already at the latest version (#{latest}).", :yellow)
+          return true
+        else
+          return false
+        end
+      end
+
+      def build_link(project, version)
+        DRUPAL_DL_LINK + "#{project}-#{version}.tar.gz"
       end
 
       def dl
         changes = []
         projects.each do |x, y|
-          self.hacked?(x, y) if y.empty? == false
-          self.clean("#{path}/#{x}")
-          # TODO: check existing version against release version - abort if same.
-          md5, link = self.release(x)
-          Download.new.fetch(link)
-          # TODO: retry download after failed download verification
-          self.extract(Download.new.path(link)) if self.verify(x, link)
-          if vc == true
-            repo = self.build_vc(x)
-            changes += self.vc_up(repo)
+          md5, version = self.release(x)
+          if y.empty? == false
+            if !self.hacked?(x, y) && !self.latest?(version, y, x)
+              proceed = true
+            else
+              proceed = false
+            end
           else
-            say("#{x} added to codebase but changes are not yet under version control.", :yellow)
+            proceed = true
+          end
+          if proceed
+            self.clean("#{path}/#{x}")
+            link = self.build_link(x, version)
+            Download.new.fetch(link)
+            # TODO: retry download after failed download verification
+            self.extract(Download.new.path(link)) if self.verify(x, link)
+            if vc == true
+              repo = self.build_vc(x)
+              changes += self.vc_up(repo)
+            else
+              say("#{x} added to codebase but changes are not yet under version control.", :yellow)
+            end
+          else
+            self.clean("#{path}/#{x}")
+            repo = self.build_vc(x)
+            Repo.new(repo).co
           end
         end
         if changes.empty? == false
@@ -79,6 +107,10 @@ module Onboard
         repo['branch'] = branch
         repo['project'] = x
         return repo
+      end
+
+      def vc_co(args)
+        Repo.new(args).co
       end
 
       def vc_up(args)
@@ -106,11 +138,11 @@ module Onboard
       end
 
       def verify(x, file, version='')
-        md5, link = self.release(x, version)
+        md5, version = self.release(x, version)
         if md5 == Digest::MD5.file(Download.new.path(file)).hexdigest
           return true
         else
-          say("Verification failed for #{project} download!", :red)
+          say("Verification failed for #{x} download!", :red)
           exit
         end
       end
@@ -124,19 +156,19 @@ module Onboard
         if version.empty? == false
           doc.xpath('//releases//release').each do |item|
             if item.at_xpath('version').content == version
-              releases[item.at_xpath('mdhash').content] = item.at_xpath('download_link').content
+              releases[item.at_xpath('mdhash').content] = item.at_xpath('version').content
             end
           end
         else
           doc.xpath('//releases//release').each do |item|
             if !item.at_xpath('version_extra')
-              releases[item.at_xpath('mdhash').content] = item.at_xpath('download_link').content
+              releases[item.at_xpath('mdhash').content] = item.at_xpath('version').content
             end
           end
         end
         if releases.nil?
           doc.xpath('//releases//release').each do |item|
-            releases[item.at_xpath('mdhash').content] = item.at_xpath('download_link').content
+            releases[item.at_xpath('mdhash').content] = item.at_xpath('version').content
           end
         end
         return releases.first

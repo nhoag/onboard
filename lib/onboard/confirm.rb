@@ -4,11 +4,12 @@ require 'thor'
 
 module Onboard
   class Confirm < Thor
-    attr_reader :message
+    attr_reader :message, :full_stop
 
     no_tasks do
-      def initialize(message)
+      def initialize(message, full_stop = false)
         @message = message
+        @full_stop = full_stop
       end
 
       def yes?
@@ -18,8 +19,15 @@ module Onboard
           puts ""
         end
         if answer =~ /^[N]$/i
-          say("Script was exited.")
-          exit
+          if full_stop
+            say("Script was exited.")
+            exit
+          else
+            say("Action was aborted.")
+            return false
+          end
+        elsif answer =~ /^[Y]$/i
+          return true
         end
       end
     end

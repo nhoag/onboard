@@ -1,12 +1,13 @@
 #!/usr/bin/env ruby
 
+require 'fileutils'
 require 'git'
 require 'pathname'
 require 'thor'
 
 module Onboard
   class Repo < Thor
-    attr_reader :g, :path, :branch, :codebase, :projects
+    attr_reader :g, :path, :branch, :codebase, :project
 
     no_tasks do
       def initialize(repo)
@@ -14,13 +15,21 @@ module Onboard
         @g = self.prepare(repo)
         @path = repo['path']
         @branch = repo['branch']
-        @projects = repo['projects']
+        @project = repo['project']
       end
 
-      def st
+      def st(patch = false)
         changed = []
         deleted = []
         untracked = []
+
+        if patch
+          patches_dir = "/tmp/onboard/patches"
+          unless File.directory?(patches_dir)
+            FileUtils.mkdir_p(patches_dir)
+          end
+          patch_file = File.open( "#{patches_dir}/#{Time.now.to_i}_#{project}.patch","w" )
+        end
 
         # TODO: figure out why g.status.changed.keys.each is returning 
         # unchanged files
@@ -31,23 +40,51 @@ module Onboard
 
         if changed.empty? == false
           say('CHANGED FILES:', :yellow)
-          changed.each { |z| puts g.diff('HEAD', z).patch }
+          changed.each do |x|
+            puts g.diff('HEAD', x).patch
+            if patch
+              patch_file << g.diff('HEAD', x).patch
+            end
+          end
           puts ''
         end
 
         if deleted.empty? == false
           say('DELETED FILES:', :yellow)
-          deleted.each { |x| say(x, :red) }
+          deleted.each do |x|
+            say(x, :red)
+            if patch
+              patch_file << g.diff('--', x).patch
+            end
+          end
           puts ''
         end
 
         if untracked.empty? == false
           say('UNTRACKED FILES:', :yellow)
-          untracked.each { |y| say(y, :red) }
+          untracked.each do |x|
+            say(x, :red)
+            if patch
+              g.add(x)
+              patch_file << g.diff('HEAD', x).patch
+            end
+          end
           puts ''
         end
 
+        if patch
+          patch_file.close
+          Dir.foreach(patches_dir) do |item|
+            file = "#{patches_dir}/#{item}"
+            FileUtils.rm_r file if File.zero?(file)
+          end
+        end
+
         return all
+      end
+
+      def co
+        g.checkout_file('HEAD', path)
       end
 
       def info
@@ -70,7 +107,7 @@ module Onboard
         g.status.untracked.keys.each { |x| changes.push x }
 
         if changes.empty? == false
-          g.add(path, :all=>true)
+          g.add(codebase, :all=>true)
           g.commit("Add #{project}")
         end
 

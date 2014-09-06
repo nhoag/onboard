@@ -28,7 +28,7 @@ module Onboard
     option :force, :aliases => "-f", :desc => "Force add modules (even if already present)"
     option :no, :aliases => "-n", :desc => "Assume 'no' for all prompts"
     option :modules, :aliases => "-m", :type => :array, :desc => "Pass a list of modules"
-    # option :delete, :aliases => "-d", :desc => "Delete existing projects"
+    option :delete, :aliases => "-d", :desc => "Delete existing projects"
     # option :source, :aliases => "-s", :desc => "Specify a project source other than drupal.org"
     option :themes, :aliases => "-t", :type => :array, :desc => "Pass a list of themes"
     option :vc, :type => :boolean, :default => true, :desc => "Enable/Disable version control handling"
@@ -50,6 +50,14 @@ module Onboard
           projects[File.basename(x)] = y[0]
         end
         puts ""
+        if options[:delete] == 'delete'
+          say("Ready to delete existing projects:", :yellow)
+          Confirm.new("Proceed?", true).yes?
+          found.each do |x, y|
+            Project.new.clean(x)
+            projects[File.basename(x)] = ''
+          end
+        end
       end
       if options[:force] != 'force'
         if found.empty? == false

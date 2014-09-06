@@ -1,10 +1,13 @@
 # encoding: utf-8
 
+require 'fileutils'
 require 'net/http'
 
 module Onboard
   class Download
-    def initialize(cache_dir='/tmp')
+    attr_reader :cache_dir
+
+    def initialize(cache_dir='/tmp/onboard/cache')
       @cache_dir = cache_dir
     end
 
@@ -13,6 +16,9 @@ module Onboard
     end
 
     def fetch(url, max_age=1800)
+      unless File.directory?(cache_dir)
+         FileUtils.mkdir_p(cache_dir)
+      end
       file_path = self.path(url)
       if File.exists? file_path
         return File.new(file_path).read if Time.now-File.mtime(file_path)<max_age
