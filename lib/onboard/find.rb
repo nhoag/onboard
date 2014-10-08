@@ -14,22 +14,19 @@ module Onboard
     def locate
       found = {}
       Find.find(haystack) do |e|
-        if File.directory?(e)
-          if needle.has_key?(File.basename(e))
-            Dir.entries(e).select do |f|
-              file = "#{e}/#{f}"
-              if File.file?(file)
-                if self.info_ext?(file)
-                  if self.version(file).empty? == false
-                    found[e] = self.version(file)
-                  end
-                end
-              end
-            end
-          end
-        end
+        next unless File.directory?(e)
+        next unless needle.include?(File.basename(e))
+        file = info_file(e)
+        found[e] = version(file)
       end
-      return found
+      found
+    end
+
+    def info_file(dir)
+      Find.find(dir).select do |f|
+        next unless File.file?(f)
+        return f if info_ext?(f)
+      end
     end
 
     def info_ext?(file)
@@ -40,7 +37,7 @@ module Onboard
       File.open(file) do |g|
         g.each_line do |line|
           if line =~ /version/
-            return line.scan(/.*?"(.*?)".*$/)[0].nil? ? '' : line.scan(/.*?"(.*?)".*$/)[0]
+            return line.scan(/.*?"(.*?)".*$/)[0].nil? ? false : line.scan(/.*?"(.*?)".*$/)[0][0]
           end
         end
       end

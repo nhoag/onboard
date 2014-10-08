@@ -1,95 +1,84 @@
 # encoding: utf-8
 
-require 'open-uri/cached'
 require 'thor'
 
 require_relative 'confirm'
+require_relative 'core'
 require_relative 'find'
+require_relative 'prepare'
 require_relative 'project'
-require_relative 'repo'
 
 module Onboard
   class CLI < Thor
-    desc "projects CODEBASE", "add projects to CODEBASE"
+    desc 'update CODEBASE', 'update projects in CODEBASE'
+    long_desc <<-LONGDESC
+      `onboard update` performs multiple tasks when updating contrib projects:
+
+      * Checks for each project in the CODEBASE
+
+      * Downloads the latest release for each project
+
+      * Adds and commits updates
+
+    LONGDESC
+    option :all, :default => false, :aliases => '-a', :desc => 'Perform all updates (default is security updates only)'
+    option :core, :aliases => '-C', :desc => 'Update Drupal core only'
+    option :contrib, :aliases => '-c', :desc => 'Update Drupal contrib only'
+    option :distro, :aliases => '-d', :desc => 'Specify a distribution other than Drupal or Pressflow'
+    option :no, :aliases => '-n', :desc => 'Assume "no" for all prompts'
+    option :projects, :aliases => '-p', :desc => 'Specify projects to update'
+    option :vc, :type => :boolean, :default => true, :desc => 'Enable/Disable version control handling'
+    option :yes, :aliases => '-y', :desc => 'Assume "yes" for all prompts'
+    def update(codebase)
+      puts codebase
+    end
+
+    desc 'projects CODEBASE', 'add projects to CODEBASE'
     long_desc <<-LONGDESC
       `onboard projects` performs multiple tasks when installing contrib
       projects:
 
       * Checks for each project in the CODEBASE
 
-      * Downloads the latest version of each project
+      * Reports patched projects
+
+      * Downloads the latest/stablest version of each project
 
       * Adds and commits each project
 
     LONGDESC
-    option :branch, :aliases => "-b", :desc => "Specify repository branch to update"
-    option :core, :required => true, :aliases => "-c", :type => :numeric, :desc => "Specify Drupal core version"
-    option :path, :required => true, :aliases => "-p", :desc => "Specify project path relative to CODEBASE"
-    option :force, :aliases => "-f", :desc => "Force add modules (even if already present)"
-    option :no, :aliases => "-n", :desc => "Assume 'no' for all prompts"
-    option :modules, :aliases => "-m", :type => :array, :desc => "Pass a list of modules"
-    option :delete, :aliases => "-d", :desc => "Delete existing projects"
-    # option :source, :aliases => "-s", :desc => "Specify a project source other than drupal.org"
-    option :themes, :aliases => "-t", :type => :array, :desc => "Pass a list of themes"
-    option :vc, :type => :boolean, :default => true, :desc => "Enable/Disable version control handling"
-    option :yes, :aliases => "-y", :desc => "Assume 'yes' for all prompts"
+    option :commit, :aliases => '-c', :desc => 'Specify commit object for Git source'
+    option :delete, :aliases => '-D', :desc => 'Delete existing projects'
+    option :destination, :required => true, :aliases => '-d', :desc => 'Specify project destination relative to CODEBASE'
+    option :force, :aliases => '-f', :desc => 'Force add projects (even if already present)'
+    option :no, :aliases => '-n', :desc => 'Assume "no" for all prompts'
+    option :projects, :aliases => '-p', :type => :array, :desc => 'Pass a list of projects'
+    # option :source, :aliases => '-s', :desc => 'Specify a project source other than drupal.org'
+    option :vc, :type => :boolean, :default => true, :desc => 'Enable/Disable version control handling'
+    option :yes, :aliases => '-y', :desc => 'Assume "yes" for all prompts'
     def projects(codebase)
-      core = "#{options[:core]}.x"
-      projects = {}
-      if options[:modules].nil? == false
-        options[:modules].each { |x| projects[x] = '' }
-      elsif options[:themes].nil? == false
-        options[:themes].each { |x| projects[x] = '' }
-      end
-      path = "#{options[:path]}"
-      found = Finder.new(projects, codebase).locate
-      if found.empty? == false
-        say("Projects exist at the following locations:", :yellow)
-        found.each do |x, y|
-          puts "  " + x
-          projects[File.basename(x)] = y[0]
-        end
-        puts ""
-        if options[:delete] == 'delete'
-          say("Ready to delete existing projects:", :yellow)
-          Confirm.new("Proceed?", true).yes?
-          found.each do |x, y|
-            Project.new.clean(x)
-            projects[File.basename(x)] = ''
-          end
-        end
-      end
-      if options[:force] != 'force'
-        if found.empty? == false
-          found.each do |x, y|
-            projects.delete(File.basename(x))
-          end
-        end
-      end
-      if projects.empty? == false
-        say("Ready to add the following projects:", :green)
-        projects.each do |x, y|
-          puts "  " + "#{codebase}/#{path}/#{x}"
-        end
-        puts ""
-        if options[:no].nil? && options[:yes].nil?
-          Confirm.new("Proceed?").yes?
-        elsif options[:no] == 'no'
-          say("Script was exited.")
-          exit
-        end
-        prj = {}
-        branch = options[:branch].nil? ? '' : options[:branch]
-        prj['branch'] = branch
-        prj['codebase'] = codebase
-        prj['core'] = core
-        prj['path'] = path
-        prj['projects'] = projects
-        prj['vc'] = options[:vc]
-        Project.new(prj).dl
-      else
-        say("All projects already in codebase.", :yellow)
-      end
+      found = Finder.new(options[:projects], codebase).locate
+      projects, answer = Prepare.new(codebase, found, options).do
+      info = [codebase, Core.new(codebase).info['major'], answer]
+      Project.new(info, projects, options).dl
+    end
+
+    desc 'lift CODEBASE', 'add lift to CODEBASE'
+    long_desc <<-LONGDESC
+      `onboard lift` performs multiple tasks when adding lift:
+
+      * Checks for each lift component in the CODEBASE
+
+      * Downloads the recommended release for each lift component
+
+      * Adds and commits updates
+
+    LONGDESC
+    option :no, :aliases => '-n', :desc => 'Assume "no" for all prompts'
+    option :vc, :type => :boolean, :default => true, :desc => 'Enable/Disable version control handling'
+    option :yes, :aliases => '-y', :desc => 'Assume "yes" for all prompts'
+    def lift(codebase)
+      puts codebase
     end
   end
 end

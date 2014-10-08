@@ -14,11 +14,10 @@ module Onboard
       end
 
       def format
-        height, width = Screen.new().size
-        spaces = " " * (width - msg.length - 8)
+        _height, width = Screen.new.size
+        spaces = ' ' * (width - msg.length - 8)
         say(msg + spaces)
       end
     end
   end
 end
-

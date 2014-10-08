@@ -21,34 +21,36 @@ Or install it yourself as:
 __COMMANDS:__
 ```
 Commands:
-  onboard help [COMMAND]                                  # Describe available commands or one specific command
-  onboard projects CODEBASE -c, --core=N -p, --path=PATH  # add projects to CODEBASE
+  onboard help [COMMAND]                                   # Describe available commands or one specific command
+  onboard lift CODEBASE (coming soon)                      # add lift to CODEBASE
+  onboard projects CODEBASE -d, --destination=DESTINATION  # add projects to CODEBASE
+  onboard update CODEBASE (coming soon)                    # update projects in CODEBASE
 ```
 
 __PROJECTS:__
 ```
 Usage:
-  onboard projects CODEBASE -c, --core=N -p, --path=PATH
+  onboard projects CODEBASE -d, --destination=DESTINATION
 
 Options:
-  -b, [--branch=BRANCH]          # Specify repository branch to update
-  -c, --core=N                   # Specify Drupal core version
-  -p, --path=PATH                # Specify project path relative to CODEBASE
-  -f, [--force=FORCE]            # Force add modules (even if already present)
-  -n, [--no=NO]                  # Assume 'no' for all prompts
-  -m, [--modules=one two three]  # Pass a list of modules
-  -d, [--delete=DELETE]          # Delete existing projects
-  -t, [--themes=one two three]   # Pass a list of themes
-      [--vc], [--no-vc]          # Enable/Disable version control handling
-                                 # Default: true
-  -y, [--yes=YES]                # Assume 'yes' for all prompts
+  -c, [--commit=COMMIT]           # Specify commit object for Git source
+  -D, [--delete=DELETE]           # Delete existing projects
+  -d, --destination=DESTINATION   # Specify project destination relative to CODEBASE
+  -f, [--force=FORCE]             # Force add projects (even if already present)
+  -n, [--no=NO]                   # Assume "no" for all prompts
+  -p, [--projects=one two three]  # Pass a list of projects
+      [--vc], [--no-vc]           # Enable/Disable version control handling
+                                  # Default: true
+  -y, [--yes=YES]                 # Assume "yes" for all prompts
 
 Description:
   `onboard projects` performs multiple tasks when installing contrib projects:
 
   * Checks for each project in the CODEBASE
 
-  * Downloads the latest version of each project
+  * Reports patched projects
+
+  * Downloads the latest/stablest version of each project
 
   * Adds and commits each project
 ```

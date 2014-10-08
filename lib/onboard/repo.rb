@@ -5,82 +5,70 @@ require 'git'
 require 'pathname'
 require 'thor'
 
+require_relative 'patch'
+
 module Onboard
   class Repo < Thor
-    attr_reader :g, :path, :branch, :codebase, :project
+    attr_reader :g, :path, :codebase, :project
 
     no_tasks do
       def initialize(repo)
         @codebase = repo['codebase']
-        @g = self.prepare(repo)
+        @g = prepare(repo)
         @path = repo['path']
-        @branch = repo['branch']
         @project = repo['project']
       end
 
+      def changed(list, patch_file, patch)
+        return false if list.empty?
+        say('CHANGED FILES:', :yellow)
+        list.each do |x|
+          puts g.diff('HEAD', x).patch
+          patch_file << g.diff('HEAD', x).patch if patch
+        end
+      end
+
+      def deleted(list, patch_file, patch)
+        return false if list.empty?
+        say('DELETED FILES:', :yellow)
+        list.each do |x|
+          say(x, :red)
+          patch_file << g.diff('--', x).patch if patch
+        end
+      end
+
+      def untracked(list, patch_file, patch)
+        return false if list.empty?
+        say('UNTRACKED FILES:', :yellow)
+        list.each do |x|
+          say(x, :red)
+          if patch
+            g.add(x)
+            patch_file << g.diff('HEAD', x).patch
+          end
+        end
+      end
+
+      def repo_status
+        all = {}
+        all['changed'] = []
+        all['deleted'] = []
+        all['untracked'] = []
+        g.status.changed.keys.each { |file| all['changed'].push(file.to_s) unless g.diff('HEAD', file).patch.empty? }
+        g.status.deleted.keys.each { |file| all['deleted'].push(file.to_s) }
+        g.status.untracked.keys.each { |file| all['untracked'].push(file.to_s) }
+        all
+      end
+
       def st(patch = false)
-        changed = []
-        deleted = []
-        untracked = []
-
-        if patch
-          patches_dir = "/tmp/onboard/patches"
-          unless File.directory?(patches_dir)
-            FileUtils.mkdir_p(patches_dir)
-          end
-          patch_file = File.open( "#{patches_dir}/#{Time.now.to_i}_#{project}.patch","w" )
-        end
-
-        # TODO: figure out why g.status.changed.keys.each is returning 
-        # unchanged files
-        g.status.changed.keys.each { |file| changed.push(file.to_s) if !g.diff('HEAD', file).patch.empty? }
-        g.status.deleted.keys.each { |file| deleted.push(file.to_s) }
-        g.status.untracked.keys.each { |file| untracked.push(file.to_s) }
-        all = changed + deleted + untracked
-
-        if changed.empty? == false
-          say('CHANGED FILES:', :yellow)
-          changed.each do |x|
-            puts g.diff('HEAD', x).patch
-            if patch
-              patch_file << g.diff('HEAD', x).patch
-            end
-          end
-          puts ''
-        end
-
-        if deleted.empty? == false
-          say('DELETED FILES:', :yellow)
-          deleted.each do |x|
-            say(x, :red)
-            if patch
-              patch_file << g.diff('--', x).patch
-            end
-          end
-          puts ''
-        end
-
-        if untracked.empty? == false
-          say('UNTRACKED FILES:', :yellow)
-          untracked.each do |x|
-            say(x, :red)
-            if patch
-              g.add(x)
-              patch_file << g.diff('HEAD', x).patch
-            end
-          end
-          puts ''
-        end
-
-        if patch
-          patch_file.close
-          Dir.foreach(patches_dir) do |item|
-            file = "#{patches_dir}/#{item}"
-            FileUtils.rm_r file if File.zero?(file)
-          end
-        end
-
-        return all
+        patch_file = Patch.new.open(project) if patch
+        # TODO: figure out why g.status.changed.keys.each is returning unchanged files
+        all = repo_status
+        changed(all['changed'], patch_file, patch)
+        deleted(all['deleted'], patch_file, patch)
+        untracked(all['untracked'], patch_file, patch)
+        Patch.new.close(patch_file)
+        all.empty? ? false : true
       end
 
       def co
@@ -91,7 +79,7 @@ module Onboard
         repo = {}
         repo['current_branch'] = g.current_branch
         repo['remotes'] = g.remotes
-        return repo
+        repo
       end
 
       def prepare(args)
@@ -102,16 +90,16 @@ module Onboard
         project = File.basename(path)
 
         changes = []
-        g.status.changed.keys.each { |x| changes.push x if !g.diff('HEAD', x).patch.empty? }
+        g.status.changed.keys.each { |x| changes.push x unless g.diff('HEAD', x).patch.empty? }
         g.status.deleted.keys.each { |x| changes.push x }
         g.status.untracked.keys.each { |x| changes.push x }
 
         if changes.empty? == false
-          g.add(codebase, :all=>true)
+          g.add(codebase, :all => true)
           g.commit("Add #{project}")
         end
 
-        return changes
+        changes
       end
 
       def push
@@ -120,4 +108,3 @@ module Onboard
     end
   end
 end
-

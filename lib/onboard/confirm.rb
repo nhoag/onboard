@@ -12,20 +12,29 @@ module Onboard
         @full_stop = full_stop
       end
 
-      def yes?
-        answer = ""
-        while answer !~ /^[Y|N]$/i do
-          answer = ask(message + " [Y|N]: ")
-          puts ""
+      def q(prefill = '')
+        return response(prefill) if prefill =~ /^[N]$/i || prefill =~ /^[Y]$/i
+        answer = ''
+        while answer !~ /^[Y|N]$/i
+          answer = ask(message + ' [Y|N]: ')
+          puts ''
         end
+        response(answer)
+      end
+
+      def no
+        if full_stop
+          say('Script was exited.')
+          exit
+        else
+          say('Action was aborted.')
+          return false
+        end
+      end
+
+      def response(answer)
         if answer =~ /^[N]$/i
-          if full_stop
-            say("Script was exited.")
-            exit
-          else
-            say("Action was aborted.")
-            return false
-          end
+          no
         elsif answer =~ /^[Y]$/i
           return true
         end
