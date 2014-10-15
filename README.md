@@ -1,5 +1,7 @@
 # Onboard
 
+[![Build Status](https://travis-ci.org/nhoag/onboard.svg?branch=master)](https://travis-ci.org/nhoag/onboard)
+
 Checks, downloads, verifies, adds, and commits Drupal contrib modules.
 
 ## Installation
