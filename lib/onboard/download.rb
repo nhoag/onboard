@@ -1,5 +1,6 @@
 # encoding: utf-8
 
+require 'digest'
 require 'fileutils'
 require 'net/http'
 require 'rubygems/package'
