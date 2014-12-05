@@ -4,20 +4,28 @@ require 'find'
 
 module Onboard
   class Finder
-    attr_reader :needle, :haystack
+    attr_reader :haystack, :needles
 
-    def initialize(needle, haystack)
-      @needle = needle
+    def initialize(needles, haystack)
       @haystack = haystack
+      @needles = needles
+    end
+
+    def source_link?(arg)
+      !!/@.*$/.match(arg)
+    end
+
+    def array_match?(arg)
+      needles.grep(/^#{File.basename(arg)}:/)
     end
 
     def locate
       found = {}
       Find.find(haystack) do |e|
         next unless File.directory?(e)
-        next unless needle.include?(File.basename(e))
-        file = info_file(e)
-        found[e] = version(file)
+        next unless array_match(e).any?
+        file = info_file(e) unless source_link?(array_match(e))
+        found[e] = source_link?(array_match(e)) ? '' : version(file)
       end
       found
     end

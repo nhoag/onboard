@@ -47,13 +47,11 @@ module Onboard
       * Adds and commits each project
 
     LONGDESC
-    option :commit, :aliases => '-c', :desc => 'Specify commit object for Git source'
     option :delete, :aliases => '-D', :desc => 'Delete existing projects'
     option :destination, :required => true, :aliases => '-d', :desc => 'Specify project destination relative to CODEBASE'
     option :force, :aliases => '-f', :desc => 'Force add projects (even if already present)'
     option :no, :aliases => '-n', :desc => 'Assume "no" for all prompts'
-    option :projects, :aliases => '-p', :type => :array, :desc => 'Pass a list of projects'
-    # option :source, :aliases => '-s', :desc => 'Specify a project source other than drupal.org'
+    option :projects, :aliases => '-p', :type => :array, :desc => 'List of projects (project[:version][@link])'
     option :vc, :type => :boolean, :default => true, :desc => 'Enable/Disable version control handling'
     option :yes, :aliases => '-y', :desc => 'Assume "yes" for all prompts'
     def projects(codebase)

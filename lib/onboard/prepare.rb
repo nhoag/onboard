@@ -14,7 +14,28 @@ module Onboard
         @codebase = codebase
         @found = found
         @options = options
-        @projects = Hash[options['projects'].map { |k, v| [k, v] }]
+        @projects = projects_build(options[:projects])
+      end
+
+      def at_split(arg)
+        arg.split('@')
+      end
+
+      def colon_split(arg)
+        arg.split(':')
+      end
+
+      def projects_build(arg)
+        data = {}
+        arg.each do |x|
+          at = at_split(x)
+          colon = colon_split(at[0])
+          project = colon[0].nil? ? '' : colon[0]
+          data[project] = {}
+          data[project]['version'] = colon[1].nil? ? '' : colon[1]
+          data[project]['link'] = at[1].nil? ? '' : at[1]
+        end
+        data
       end
 
       def report
@@ -77,16 +98,10 @@ module Onboard
       end
 
       def do
-        if found.empty? == false
-          proj = report
-          proj = delete(proj)
-        else
-          proj = projects
-        end
-        proj = force(proj)
-        confirm(proj) unless proj.empty?
-        return proj, answer unless proj.empty?
-        void
+        proj = force(found.any? ? delete(report) : projects)
+        return void if proj.empty?
+        confirm(proj)
+        return proj, answer
       end
     end
   end
