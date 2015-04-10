@@ -104,7 +104,7 @@ module Onboard
         proj = force(found.any? ? delete(report) : projects)
         return void if proj.empty?
         confirm(proj)
-        proj, answer
+        [proj, answer]
       end
     end
   end

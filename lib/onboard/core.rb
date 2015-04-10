@@ -37,7 +37,7 @@ module Onboard
         next unless File.file?(e)
         i['drupal'] = drupal(e) if %r{modules/system/system\.info$} =~ e
         i['pressflow'] = pressflow(e) if %r{modules/system/system\.module$} =~ e
-        if /includes\/bootstrap\.inc$/ =~ e
+        if %r{includes/bootstrap\.inc$} =~ e
           i['distro'] = pressflow?(e) ? 'pressflow' : 'drupal'
         end
       end
