@@ -3,16 +3,19 @@
 require 'thor'
 
 require_relative 'confirm'
+require_relative 'core'
+require_relative 'find'
 require_relative 'project'
 
 module Onboard
   class Prepare < Thor
-    attr_reader :codebase, :found, :options, :projects
+    attr_reader :codebase, :found, :info, :options, :projects
 
     no_tasks do
-      def initialize(codebase, found, options)
+      def initialize(codebase, options)
         @codebase = codebase
-        @found = found
+        @found = Finder.new(options[:projects], codebase).locate
+        @info = [codebase, Core.new(codebase).info['major'], answer]
         @options = options
         @projects = projects_build(options[:projects])
       end
@@ -101,7 +104,7 @@ module Onboard
         proj = force(found.any? ? delete(report) : projects)
         return void if proj.empty?
         confirm(proj)
-        return proj, answer
+        proj, answer
       end
     end
   end

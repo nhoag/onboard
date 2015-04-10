@@ -33,9 +33,9 @@ module Onboard
       puts codebase
     end
 
-    desc 'projects CODEBASE', 'add projects to CODEBASE'
+    desc 'extend CODEBASE', 'add projects to CODEBASE'
     long_desc <<-LONGDESC
-      `onboard projects` performs multiple tasks when installing contrib
+      `onboard extend` performs multiple tasks when installing contrib
       projects:
 
       * Checks for each project in the CODEBASE
@@ -54,11 +54,8 @@ module Onboard
     option :projects, :aliases => '-p', :type => :array, :desc => 'List of projects (project[:version][@link])'
     option :vc, :type => :boolean, :default => true, :desc => 'Enable/Disable version control handling'
     option :yes, :aliases => '-y', :desc => 'Assume "yes" for all prompts'
-    def projects(codebase)
-      found = Finder.new(options[:projects], codebase).locate
-      projects, answer = Prepare.new(codebase, found, options).do
-      info = [codebase, Core.new(codebase).info['major'], answer]
-      Project.new(info, projects, options).dl
+    def extend(codebase)
+      Project.new(Prepare.new(codebase, options)).dl
     end
 
     desc 'lift CODEBASE', 'add lift to CODEBASE'

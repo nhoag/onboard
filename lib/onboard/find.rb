@@ -12,7 +12,7 @@ module Onboard
     end
 
     def source_link?(arg)
-      !!/@.*$/.match(arg)
+      !/@.*$/.match(arg).nil?
     end
 
     def array_match?(arg)

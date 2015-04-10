@@ -12,11 +12,11 @@ module Onboard
     end
 
     def git?
-      !!(source =~ /\.git$/)
+      !(source =~ /\.git$/).nil?
     end
 
     def archive?
-      !!(source =~ /[\.gz|\.tar|\.tgz|\.zip]$/)
+      !(source =~ /[\.gz|\.tar|\.tgz|\.zip]$/).nil?
     end
 
     def subtree
