@@ -23,9 +23,9 @@ module Onboard
       found = {}
       Find.find(haystack) do |e|
         next unless File.directory?(e)
-        next unless array_match(e).any?
-        file = info_file(e) unless source_link?(array_match(e))
-        found[e] = source_link?(array_match(e)) ? '' : version(file)
+        next unless array_match?(e).any?
+        file = info_file(e) unless source_link?(array_match?(e))
+        found[e] = source_link?(array_match?(e)) ? '' : version(file)
       end
       found
     end

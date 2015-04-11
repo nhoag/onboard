@@ -24,11 +24,11 @@ module Onboard
         @size = projects.length
       end
 
-      def continue?(project, version, latest)
-        return true if version.nil?
+      def continue?(project, i, latest)
+        return true if i['version'].empty?
         clean("#{path}/#{project}")
         repo = build_vc(project)
-        check = Validate.new(project, version, core, answer)
+        check = Validate.new(project, i['version'], core, answer)
         if check.latest?(latest) || check.hacked?(path, repo)
           return false
         else
@@ -68,9 +68,9 @@ module Onboard
         end
       end
 
-      def delegate(project, version, changes, count)
+      def delegate(project, i, changes, count)
         latest, _md5 = Release.new(project, core).choose
-        if continue?(project, version, latest)
+        if continue?(project, i, latest)
           deploy(project, latest)
           return update(project, changes, count)
         else

@@ -13,10 +13,10 @@ module Onboard
 
     no_tasks do
       def initialize(codebase, options)
+        @options = options
         @codebase = codebase
         @found = Finder.new(options[:projects], codebase).locate
         @info = [codebase, Core.new(codebase).info['major'], answer]
-        @options = options
         @projects = projects_build(options[:projects])
       end
 
@@ -104,7 +104,7 @@ module Onboard
         proj = force(found.any? ? delete(report) : projects)
         return void if proj.empty?
         confirm(proj)
-        [proj, answer]
+        [info, proj]
       end
     end
   end

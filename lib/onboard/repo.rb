@@ -54,7 +54,9 @@ module Onboard
         all['changed'] = []
         all['deleted'] = []
         all['untracked'] = []
-        g.status.changed.keys.each { |file| all['changed'].push(file.to_s) unless g.diff('HEAD', file).patch.empty? }
+        g.status.changed.keys.each { |file| puts file }
+        # all['changed'].push(file.to_s) unless g.diff('HEAD', file).patch.empty? }
+        exit
         g.status.deleted.keys.each { |file| all['deleted'].push(file.to_s) }
         g.status.untracked.keys.each { |file| all['untracked'].push(file.to_s) }
         all

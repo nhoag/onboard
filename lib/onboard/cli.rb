@@ -55,7 +55,8 @@ module Onboard
     option :vc, :type => :boolean, :default => true, :desc => 'Enable/Disable version control handling'
     option :yes, :aliases => '-y', :desc => 'Assume "yes" for all prompts'
     def extend(codebase)
-      Project.new(Prepare.new(codebase, options)).dl
+      info, projects = Prepare.new(codebase, options).do
+      Project.new(info, projects, options).dl
     end
 
     desc 'lift CODEBASE', 'add lift to CODEBASE'
