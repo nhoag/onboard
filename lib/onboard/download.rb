@@ -23,11 +23,15 @@ module Onboard
       File.join('', @cache_dir, Digest::MD5.hexdigest(url))
     end
 
+    def expired?(file_path, max_age)
+      Time.now - File.mtime(file_path) < max_age
+    end
+
     def fetch(url, max_age = 1800)
       FileUtils.mkdir_p(cache_dir) unless File.directory?(cache_dir)
       file_path = path(url)
       if File.exist? file_path
-        return File.new(file_path).read if Time.now - File.mtime(file_path) < max_age
+        return File.new(file_path).read unless expired?(file_path, max_age)
       end
       File.open(file_path, 'w') do |data|
         data << Net::HTTP.get_response(URI.parse(url)).body
