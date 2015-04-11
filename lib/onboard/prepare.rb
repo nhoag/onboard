@@ -28,15 +28,19 @@ module Onboard
         arg.split(':')
       end
 
+      def assign(arg)
+        arg.nil? ? '' : arg[1]
+      end
+
       def projects_build(arg)
         data = {}
         arg.each do |x|
           at = at_split(x)
           colon = colon_split(at[0])
-          project = colon[0].nil? ? '' : colon[0]
+          project = assign(colon[0])
           data[project] = {}
-          data[project]['version'] = colon[1].nil? ? '' : colon[1]
-          data[project]['link'] = at[1].nil? ? '' : at[1]
+          data[project]['version'] = assign(colon[1])
+          data[project]['link'] = assign(at[1])
         end
         data
       end
