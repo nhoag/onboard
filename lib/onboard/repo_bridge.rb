@@ -20,15 +20,19 @@ module Onboard
         g.co
       end
 
-      def up
-        msg = "Committing #{args['project']} on #{info['current_branch']} branch..."
-        Msg.new(msg).format
-        changes = g.commit("#{args['path']}/#{args['project']}")
+      def user_msg(changes)
         if changes.empty? == false
           say('  [done]', :green)
         else
           puts "\nNo changes to commit for #{args['project']}"
         end
+      end
+
+      def up
+        msg = "Committing #{args['project']} on #{info['current_branch']} branch..."
+        Msg.new(msg).format
+        changes = g.commit("#{args['path']}/#{args['project']}")
+        user_msg(changes)
         changes
       end
 
