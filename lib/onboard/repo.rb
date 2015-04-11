@@ -49,16 +49,33 @@ module Onboard
         end
       end
 
+      def patch_empty?(file)
+        g.diff('HEAD', file).patch.empty?
+      end
+
+      def build_changed_array
+        changed_array = []
+        g.status.changed.keys.each { |file| changed_array.push(file.to_s) unless patch_empty?(file) }
+        changed_array
+      end
+
+      def build_deleted_array
+        deleted_array = []
+        g.status.deleted.keys.each { |file| deleted_array.push(file.to_s) }
+        deleted
+      end
+
+      def build_untracked_array
+        untracked_array = []
+        g.status.untracked.keys.each { |file| untracked_array.push(file.to_s) }
+        untracked_array
+      end
+
       def repo_status
         all = {}
-        all['changed'] = []
-        all['deleted'] = []
-        all['untracked'] = []
-        g.status.changed.keys.each { |file| puts file }
-        # all['changed'].push(file.to_s) unless g.diff('HEAD', file).patch.empty? }
-        exit
-        g.status.deleted.keys.each { |file| all['deleted'].push(file.to_s) }
-        g.status.untracked.keys.each { |file| all['untracked'].push(file.to_s) }
+        all['changed'] = build_changed_array
+        all['deleted'] = build_deleted_array
+        all['untracked'] = build_untracked_array
         all
       end
 
@@ -88,13 +105,29 @@ module Onboard
         Git.open((Pathname.new(args['codebase'])).to_s)
       end
 
+      def append_changed
+        changed = []
+        g.status.changed.keys.each { |x| changed.push x unless g.diff('HEAD', x).patch.empty? }
+        changed
+      end
+
+      def append_deleted
+        deleted = []
+        g.status.deleted.keys.each { |x| deleted.push x }
+        deleted
+      end
+
+      def append_untracked
+        untracked = []
+        g.status.untracked.keys.each { |x| untracked.push x }
+        untracked
+      end
+
       def commit(path)
         project = File.basename(path)
 
         changes = []
-        g.status.changed.keys.each { |x| changes.push x unless g.diff('HEAD', x).patch.empty? }
-        g.status.deleted.keys.each { |x| changes.push x }
-        g.status.untracked.keys.each { |x| changes.push x }
+        changes << append_changed << append_deleted << append_untracked
 
         if changes.empty? == false
           g.add(codebase, :all => true)
