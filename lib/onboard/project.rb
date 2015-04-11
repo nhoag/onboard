@@ -42,12 +42,16 @@ module Onboard
         RepoBridge.new(repo).co
       end
 
+      def valid?(project, version, link)
+        Validate.new(project, version, core, answer).verify(link)
+      end
+
       def deploy(project, version)
         clean("#{path}/#{project}")
         link = Download.new.build_link(project, version)
         Download.new.fetch(link)
         # TODO: retry download after failed download verification
-        Extract.new(Download.new.path(link), link, path).x if Validate.new(project, version, core, answer).verify(link)
+        Extract.new(Download.new.path(link), link, path).x if valid?(project, version, link)
       end
 
       def push(changes)
