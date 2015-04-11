@@ -12,11 +12,11 @@ module Onboard
     end
 
     def source_link?(arg)
-      !/@.*$/.match(arg).nil?
+      !/@.*$/.match(arg.to_s).nil?
     end
 
     def array_match?(arg)
-      needles.grep(/^#{File.basename(arg)}:/)
+      needles.grep(/^#{File.basename(arg)}$/)
     end
 
     def locate

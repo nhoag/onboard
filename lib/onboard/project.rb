@@ -25,7 +25,7 @@ module Onboard
       end
 
       def continue?(project, i, latest)
-        return true if i['version'].empty?
+        return true if i.nil? || i['version'].to_s.empty?
         clean("#{path}/#{project}")
         repo = build_vc(project)
         check = Validate.new(project, i['version'], core, answer)
