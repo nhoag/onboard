@@ -6,6 +6,6 @@ describe Onboard::Msg do
   end
 
   it 'prints string with trailing spaces to STDOUT' do
-    expect{@message.format}.to output(/^hello\s*/).to_stdout
+    expect { @message.format }.to output(/^hello\s*/).to_stdout
   end
 end
