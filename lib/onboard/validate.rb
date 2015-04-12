@@ -25,9 +25,13 @@ module Onboard
       def hacked?(path, repo)
         link = Download.new.build_link(project, version)
         Download.new.fetch(link)
-        Extract.new(Download.new.path(link), link, path).x if verify(link, version)
+        extract(link, path)
         changes = Repo.new(repo).st(true)
         return !Confirm.new('Proceed?').q(answer) unless changes
+      end
+
+      def extract(link, path)
+        Extract.new(Download.new.path(link), link, path).x if verify(link, version)
       end
 
       def latest?(latest)
