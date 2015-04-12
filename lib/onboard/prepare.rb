@@ -29,7 +29,7 @@ module Onboard
       end
 
       def assign(arg)
-        arg.nil? ? '' : arg[1]
+        arg.nil? ? '' : arg
       end
 
       def project_hash(version, link)
