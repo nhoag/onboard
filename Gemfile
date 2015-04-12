@@ -4,7 +4,7 @@ gem 'rake'
 
 group :test do
   gem 'coveralls'
-  gem 'rspec', '>= 3'
+  gem 'rspec', '>= 3.2'
   gem 'rubocop', '>= 0.25'
   gem 'simplecov', '>= 0.9'
   gem 'timecop'
