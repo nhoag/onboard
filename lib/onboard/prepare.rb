@@ -45,7 +45,7 @@ module Onboard
           at = at_split(x)
           colon = colon_split(at[0])
           project = assign(colon[0])
-          data['project'] = project_hash(colon[1], at[1])
+          data[project] = project_hash(colon[1], at[1])
         end
         data
       end
