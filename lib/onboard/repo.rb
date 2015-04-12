@@ -62,7 +62,7 @@ module Onboard
       def build_deleted_array(s = false)
         deleted_array = []
         g.status.deleted.keys.each { |file| deleted_array.push(file.tap { |a| a.to_s if s }) }
-        deleted
+        deleted_array
       end
 
       def build_untracked_array(s = false)

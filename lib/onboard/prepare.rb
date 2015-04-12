@@ -32,7 +32,7 @@ module Onboard
         arg.nil? ? '' : arg[1]
       end
 
-      def project_hash(project, version, link)
+      def project_hash(version, link)
         project = {}
         project['version'] = assign(version)
         project['link'] = assign(link)
@@ -45,7 +45,7 @@ module Onboard
           at = at_split(x)
           colon = colon_split(at[0])
           project = assign(colon[0])
-          data.store(project_hash(project, colon[1], at[1]))
+          data['project'] = project_hash(colon[1], at[1])
         end
         data
       end
