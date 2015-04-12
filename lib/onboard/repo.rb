@@ -55,19 +55,19 @@ module Onboard
 
       def build_changed_array(s = false)
         changed_array = []
-        g.status.changed.keys.each { |file| changed_array.push(file.tap{|a| a.to_s if s}) unless patch_empty?(file) }
+        g.status.changed.keys.each { |file| changed_array.push(file.tap { |a| a.to_s if s }) unless patch_empty?(file) }
         changed_array
       end
 
       def build_deleted_array(s = false)
         deleted_array = []
-        g.status.deleted.keys.each { |file| deleted_array.push(file.tap{|a| a.to_s if s}) }
+        g.status.deleted.keys.each { |file| deleted_array.push(file.tap { |a| a.to_s if s }) }
         deleted
       end
 
       def build_untracked_array(s = false)
         untracked_array = []
-        g.status.untracked.keys.each { |file| untracked_array.push(file.tap{|a| a.to_s if s}) }
+        g.status.untracked.keys.each { |file| untracked_array.push(file.tap { |a| a.to_s if s }) }
         untracked_array
       end
 
