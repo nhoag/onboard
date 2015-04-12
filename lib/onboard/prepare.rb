@@ -32,15 +32,20 @@ module Onboard
         arg.nil? ? '' : arg[1]
       end
 
+      def project_hash(project, version, link)
+        project = {}
+        project['version'] = assign(version)
+        project['link'] = assign(link)
+        project
+      end
+
       def projects_build(arg)
         data = {}
         arg.each do |x|
           at = at_split(x)
           colon = colon_split(at[0])
           project = assign(colon[0])
-          data[project] = {}
-          data[project]['version'] = assign(colon[1])
-          data[project]['link'] = assign(at[1])
+          data.store(project_hash(project, colon[1], at[1]))
         end
         data
       end
