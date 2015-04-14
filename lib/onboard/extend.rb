@@ -10,7 +10,7 @@ require_relative 'repo_bridge'
 require_relative 'validate'
 
 module Onboard
-  class Project < Thor
+  class Extend < Thor
     attr_reader :answer, :codebase, :core, :options, :path, :projects, :size
 
     no_tasks do

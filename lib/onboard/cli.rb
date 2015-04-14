@@ -2,11 +2,8 @@
 
 require 'thor'
 
-require_relative 'confirm'
-require_relative 'core'
-require_relative 'find'
+require_relative 'extend'
 require_relative 'prepare'
-require_relative 'project'
 
 module Onboard
   class CLI < Thor
@@ -55,8 +52,8 @@ module Onboard
     option :vc, :type => :boolean, :default => true, :desc => 'Enable/Disable version control handling'
     option :yes, :aliases => '-y', :desc => 'Assume "yes" for all prompts'
     def extend(codebase)
-      info, projects = Prepare.new(codebase, options).do
-      Project.new(info, projects, options).dl
+      info, projects = Prepare.new(codebase, @options).do
+      Extend.new(info, projects, @options).dl
     end
 
     desc 'lift CODEBASE', 'add lift to CODEBASE'

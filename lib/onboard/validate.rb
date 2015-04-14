@@ -6,7 +6,6 @@ require 'thor'
 require_relative 'confirm'
 require_relative 'download'
 require_relative 'extract'
-require_relative 'project'
 require_relative 'release'
 require_relative 'repo'
 

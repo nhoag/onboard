@@ -5,7 +5,7 @@ require 'thor'
 require_relative 'confirm'
 require_relative 'core'
 require_relative 'find'
-require_relative 'project'
+require_relative 'extend'
 
 module Onboard
   class Prepare < Thor
@@ -76,7 +76,7 @@ module Onboard
         say('Ready to delete existing projects:', :yellow)
         Confirm.new('Proceed?', true).q(answer)
         found.each do |x, _|
-          Project.new.clean(x)
+          Extend.new.clean(x)
           proj[File.basename(x)] = ''
         end
         proj
